@@ -72,17 +72,19 @@ FN_MAPPING = {
     'ticker': get_ticker,
     'spread': get_spreads,
 }
-
+PAIR_MAPPING = {
+    'XBTUSD': 'BTC-USD'
+}
 
 def store_info(save_dir, pair, collection_time, info_type, **kwargs):
-    logger.info(f'Collecting {info_type} data for {pair}')
+    logger.info(f'Collecting {info_type} data for {PAIR_MAPPING[pair]}')
     with open(join(save_dir, info_type) + '.txt', 'w') as file:
         start = time.time()
         while time.time() - start < collection_time:
             file.write(json.dumps(FN_MAPPING[info_type](pair=pair, **kwargs)))
             file.write('\n')
 
-    logger.info(f'Finished collecting {info_type} data for {pair}')
+    logger.info(f'Finished collecting {info_type} data for {PAIR_MAPPING[pair]}')
 
 
 def parse_arguments():
@@ -138,7 +140,7 @@ def main(args):
     # Ticker
     use_ticker = args.ticker
 
-    save_dir = join(*[BASE_SAVE_DIR, pair, 'kraken'])
+    save_dir = join(*[BASE_SAVE_DIR, PAIR_MAPPING[pair], 'kraken'])
     os.makedirs(save_dir, exist_ok=True)
     threads = []
     if use_ticker:
