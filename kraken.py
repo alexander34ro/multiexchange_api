@@ -75,13 +75,20 @@ FN_MAPPING = {
 PAIR_MAPPING = {
     'XBTUSD': 'BTC-USD'
 }
+# Kraken is stupid so it uses ANOTHER convention for the pair in the response json
+KRAKEN_PAIR_MAPPING = {
+    'XBTUSD': 'XXBTZUSD'
+}
 
 def store_info(save_dir, pair, collection_time, info_type, **kwargs):
     logger.info(f'Collecting {info_type} data for {PAIR_MAPPING[pair]}')
     with open(join(save_dir, info_type) + '.txt', 'w') as file:
         start = time.time()
         while time.time() - start < collection_time:
-            file.write(json.dumps(FN_MAPPING[info_type](pair=pair, **kwargs)))
+            file.write(json.dumps({
+                'ts': time.time(),
+                'response': FN_MAPPING[info_type](pair=pair, **kwargs)['result'][KRAKEN_PAIR_MAPPING[pair]]
+                }))
             file.write('\n')
 
     logger.info(f'Finished collecting {info_type} data for {PAIR_MAPPING[pair]}')

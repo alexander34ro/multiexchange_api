@@ -27,7 +27,10 @@ def store_info(save_dir, pair, collection_time, info_type, **kwargs):
     with open(join(save_dir, info_type) + '.txt', 'w') as file:
         start = time.time()
         while time.time() - start < collection_time:
-            file.write(json.dumps(FN_MAPPING[info_type](product_id=pair, **kwargs)))
+            file.write(json.dumps({
+                'ts': time.time(),
+                'response': FN_MAPPING[info_type](product_id=pair, **kwargs)
+                }))
             file.write('\n')
 
     logger.info(f'Finished collecting {info_type} data for {pair}')
