@@ -23,6 +23,11 @@ FN_MAPPING = {
 
 
 def store_info(save_dir, pair, collection_time, info_type, **kwargs):
+    """
+    Logs API request response by
+        info_type: FN_MAPPING.keys()
+        timestamp: Unix time of request
+    """
     logger.info(f'Collecting {info_type} data for {pair}')
     with open(join(save_dir, info_type) + '.txt', 'w') as file:
         start = time.time()

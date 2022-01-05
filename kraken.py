@@ -1,6 +1,6 @@
 """
 This module will collect all the necessary data for one Pair from
-the Coinbase Pro exchange
+the Kraken exchange
 """
 import os
 from os.path import join
@@ -80,7 +80,13 @@ KRAKEN_PAIR_MAPPING = {
     'XBTUSD': 'XXBTZUSD'
 }
 
+
 def store_info(save_dir, pair, collection_time, info_type, **kwargs):
+    """
+    Logs API request response by
+        info_type: FN_MAPPING.keys()
+        timestamp: Unix time of request
+    """
     logger.info(f'Collecting {info_type} data for {PAIR_MAPPING[pair]}')
     with open(join(save_dir, info_type) + '.txt', 'w') as file:
         start = time.time()
