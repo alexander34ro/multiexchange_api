@@ -13,8 +13,21 @@ from loguru import logger
 
 BASE_SAVE_DIR = '../../datasets/'
 PUBLIC_CLIENT = cbpro.PublicClient()
+
+
+def get_product_order_book(product_id, level=2, depth=10):
+    """
+    Buffer function to avoid getting a huge order book for nothing
+    TODO: make this a real buffer so as to avoid losing info from the API because of processing time
+    """
+    response = PUBLIC_CLIENT.get_product_order_book(product_id=product_id, level=level)
+    response['bids'] = response['bids'][:depth]
+    response['asks'] = response['asks'][:depth]
+    return response
+
+
 FN_MAPPING = {
-    'order_book': PUBLIC_CLIENT.get_product_order_book,
+    'order_book': get_product_order_book,
     'candles': PUBLIC_CLIENT.get_product_historic_rates,
     'trades': PUBLIC_CLIENT.get_product_trades,
     'ticker': PUBLIC_CLIENT.get_product_ticker,
@@ -54,6 +67,8 @@ def parse_arguments():
                              'with the level parameter.')
     parser.add_argument('--ob_level', type=int, default=3,
                         help='Level of order book desired. Accepted values: 1, 2, 3')
+    parser.add_argument('--ob_depth', type=int, default=10,
+                        help='Depth of the order book. Realistically shouldn-t be larger than 10')
     # Candles
     parser.add_argument('--candles', type=int, default=0,
                         help='Historic rates for a product. Rates are returned in grouped buckets. '
@@ -83,7 +98,9 @@ def main(args):
     pair = args.pair
     # Ob
     use_ob = args.order_book
-    if use_ob: ob_level = args.ob_level
+    if use_ob:
+        ob_level = args.ob_level
+        ob_depth = args.ob_depth
     # Candles
     use_candles = args.candles
     if use_candles: candles_granularity = args.granularity
@@ -106,7 +123,8 @@ def main(args):
     if use_ob:
         t = threading.Thread(target=store_info,
                              args=(save_dir, pair, collection_time, 'order_book'),
-                             kwargs={'level': ob_level}
+                             kwargs={'level': ob_level,
+                                     'depth': ob_depth}
                              )
         threads.append(t)
 
