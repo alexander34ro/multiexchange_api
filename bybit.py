@@ -1,7 +1,25 @@
 """
 This module collects all necessary data for one Pair
 from the Bybit exchange
+
+General
+- Docs are found at:
+  https://bybit-exchange.github.io/docs/inverse/?console#t-marketdata
+- Requests go to:
+  https://api-testnet.bybit.com/v2/public
+- All Bybit responses include:
+  "ret_code": 0, - error code 0 means success
+  "ret_msg": "OK", - error message
+  "ext_code": "",
+  "ext_info": "",
+  "result": [], - actual response
+  "time_now": "1567109419.049271"
+
+Error handling
+- Always check the ret_code is 0
+- Otherwise, return the error (ret_msg)
 """
+
 import os
 from os.path import join
 import json
@@ -23,12 +41,12 @@ def get_order_book(pair=PAIR, level=LEVEL):
     api_command = API_LINK + f'orderBook/{level}?symbol={pair}'
     logger.info(f'GET #{api_command}')
     resp = requests.get(api_command).json()
-    if resp['ret_msg'] == 'OK': return resp['result']
+    if resp['ret_code'] == 0: return resp['result']
     return resp['ret_msg']
 
 # TODO: everything else
 
-def get_trades(pair, since):
+def get_trades(pair=PAIR, since):
     """Returns last 1000 trades by default"""
     api_command = API_LINK + f'Trades?pair={pair}&since={since}'
     resp = requests.get(api_command).json()
