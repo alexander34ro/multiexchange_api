@@ -10,17 +10,21 @@ import time
 import argparse
 import threading
 from loguru import logger
-from pybit import HTTP
 
 API_LINK = 'https://api-testnet.bybit.com/v2/public/'
+PAIR = 'BTCUSD'
+LEVEL = 'L2'
 
-def get_order_book(pair):
-    """Returns L2 order book"""
-    # TODO: might want to add depth level as parameter
-    api_command = API_LINK + f'orderBook/L2?symbol={pair}'
+def get_order_book(pair=PAIR, level=LEVEL):
+    """
+    Returns L2 order book
+    TODO: might want to add depth level as parameter
+    """
+    api_command = API_LINK + f'orderBook/{level}?symbol={pair}'
+    logger.info(f'GET #{api_command}')
     resp = requests.get(api_command).json()
-    if not resp['error']: return resp # empty
-    return resp['error']
+    if resp['ret_msg'] == 'OK': return resp['result']
+    return resp['ret_msg']
 
 # TODO: everything else
 
