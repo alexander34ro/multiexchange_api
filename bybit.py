@@ -38,30 +38,21 @@ def get_order_book(pair=PAIR, level=LEVEL):
     Returns L2 order book
     """
     api_command = API_LINK + f'orderBook/{level}?symbol={pair}'
-    logger.info(f'GET #{api_command}')
-    resp = requests.get(api_command).json()
-    if resp['ret_code'] == 0: return resp['result']
-    return resp['ret_msg']
+    return make_request(api_command)
 
 def get_trades(pair=PAIR):
     """
     Returns last 500 trades by default
     """
     api_command = API_LINK + f'trading-records?symbol={pair}'
-    logger.info(f'GET #{api_command}')
-    resp = requests.get(api_command).json()
-    if resp['ret_code'] == 0: return resp['result']
-    return resp['ret_msg']
+    return make_request(api_command)
 
 # TODO: everything else
 
 def get_spreads(pair, since):
     """Returns last recent spreads"""
     api_command = API_LINK + f'Spreads?pair={pair}&since={since}'
-    resp = requests.get(api_command).json()
-    if not resp['error']:  # empty
-        return resp
-    return resp['error']
+    return make_request(api_command)
 
 def get_candles(pair, granularity, since=None):
     """
@@ -73,10 +64,7 @@ def get_candles(pair, granularity, since=None):
         api_command = API_LINK + f'OHLC?pair={pair}&interval={granularity}'
     else:
         api_command = API_LINK + f'OHLC?pair={pair}&interval={granularity}&since={since}'
-    resp = requests.get(api_command).json()
-    if not resp['error']:  # empty
-        return resp
-    return resp['error']
+    return make_request(api_command)
 
 def get_ticker(pair):
     """
@@ -84,10 +72,7 @@ def get_ticker(pair):
     Note:Today's prices start at midnight UTC
     """
     api_command = API_LINK + f'Ticker?pair={pair}'
-    resp = requests.get(api_command).json()
-    if not resp['error']:  # empty
-        return resp
-    return resp['error']
+    return make_request(api_command)
 
 
 BASE_SAVE_DIR = '../../datasets/'
@@ -211,6 +196,15 @@ def main(args):
         t.start()
 
 
+def make_request(url):
+    """
+    Makes a request and handles the response
+    Returns result or error message
+    """
+    logger.info(f'GET {url}')
+    resp = requests.get(url).json()
+    if resp['ret_code'] == 0: return resp['result']
+    return resp['ret_msg']
 
 
 if __name__ == "__main__":
