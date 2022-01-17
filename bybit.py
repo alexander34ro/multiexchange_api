@@ -36,7 +36,6 @@ LEVEL = 'L2'
 def get_order_book(pair=PAIR, level=LEVEL):
     """
     Returns L2 order book
-    TODO: might want to add depth level as parameter
     """
     api_command = API_LINK + f'orderBook/{level}?symbol={pair}'
     logger.info(f'GET #{api_command}')
@@ -44,15 +43,17 @@ def get_order_book(pair=PAIR, level=LEVEL):
     if resp['ret_code'] == 0: return resp['result']
     return resp['ret_msg']
 
-# TODO: everything else
-
-def get_trades(pair=PAIR, since):
-    """Returns last 1000 trades by default"""
-    api_command = API_LINK + f'Trades?pair={pair}&since={since}'
+def get_trades(pair=PAIR):
+    """
+    Returns last 500 trades by default
+    """
+    api_command = API_LINK + f'trading-records?symbol={pair}'
+    logger.info(f'GET #{api_command}')
     resp = requests.get(api_command).json()
-    if not resp['error']:  # empty
-        return resp
-    return resp['error']
+    if resp['ret_code'] == 0: return resp['result']
+    return resp['ret_msg']
+
+# TODO: everything else
 
 def get_spreads(pair, since):
     """Returns last recent spreads"""
