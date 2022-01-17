@@ -49,24 +49,30 @@ def get_trades(pair=PAIR):
 
 # TODO: everything else
 
-def get_spreads(pair, since):
-    """Returns last recent spreads"""
+# Not supported
+def get_spreads(pair=PAIR, since):
+    """
+    Returns last recent spreads
+    """
+    raise NotImplementedError
     api_command = API_LINK + f'Spreads?pair={pair}&since={since}'
     return make_request(api_command)
 
-def get_candles(pair, granularity, since=None):
+# Not supported
+def get_candles(pair=PAIR, granularity, since=None):
     """
     Returns last candles
     Note:  the last entry in the OHLC array is for the current, not-yet-committed frame and will always be present,
            regardless of the value of since.
     """
+    raise NotImplementedError
     if since is None:
         api_command = API_LINK + f'OHLC?pair={pair}&interval={granularity}'
     else:
         api_command = API_LINK + f'OHLC?pair={pair}&interval={granularity}&since={since}'
     return make_request(api_command)
 
-def get_ticker(pair):
+def get_ticker(pair=PAIR):
     """
     Returns ticker info.
     Note:Today's prices start at midnight UTC
