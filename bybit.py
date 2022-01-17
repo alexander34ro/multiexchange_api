@@ -32,6 +32,8 @@ from loguru import logger
 API_LINK = 'https://api-testnet.bybit.com/v2/public/'
 PAIR = 'BTCUSD'
 LEVEL = 'L2'
+INTERVAL = '1'
+SINCE = '1581231260'
 
 def get_order_book(pair=PAIR, level=LEVEL):
     """
@@ -72,22 +74,23 @@ def get_trades(pair=PAIR):
 
 # TODO: everything else
 
-def get_ticker(pair=PAIR):
+def get_ticker(pair=PAIR, interval=INTERVAL, since=SINCE):
     """
     Returns ticker info.
     Note:Today's prices start at midnight UTC
     """
-    api_command = API_LINK + f'Ticker?pair={pair}'
+    api_command = API_LINK + \
+        f'kline/list?symbol={pair}&interval={interval}&from={since}'
     return make_request(api_command)
 
 
 BASE_SAVE_DIR = '../../datasets/'
 FN_MAPPING = {
     'order_book': get_order_book,
-    'candles': get_candles,
+    # 'candles': get_candles,
     'trades': get_trades,
     'ticker': get_ticker,
-    'spread': get_spreads,
+    # 'spread': get_spreads,
 }
 
 
