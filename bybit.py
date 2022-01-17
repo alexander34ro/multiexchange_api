@@ -47,30 +47,30 @@ def get_trades(pair=PAIR):
     api_command = API_LINK + f'trading-records?symbol={pair}'
     return make_request(api_command)
 
+# Not supported
+# def get_spreads(pair=PAIR, since):
+#     """
+#     Returns last recent spreads
+#     """
+#     raise NotImplementedError
+#     api_command = API_LINK + f'Spreads?pair={pair}&since={since}'
+#     return make_request(api_command)
+
+# Not supported
+# def get_candles(pair=PAIR, granularity, since=None):
+#     """
+#     Returns last candles
+#     Note:  the last entry in the OHLC array is for the current, not-yet-committed frame and will always be present,
+#            regardless of the value of since.
+#     """
+#     raise NotImplementedError
+#     if since is None:
+#         api_command = API_LINK + f'OHLC?pair={pair}&interval={granularity}'
+#     else:
+#         api_command = API_LINK + f'OHLC?pair={pair}&interval={granularity}&since={since}'
+#     return make_request(api_command)
+
 # TODO: everything else
-
-# Not supported
-def get_spreads(pair=PAIR, since):
-    """
-    Returns last recent spreads
-    """
-    raise NotImplementedError
-    api_command = API_LINK + f'Spreads?pair={pair}&since={since}'
-    return make_request(api_command)
-
-# Not supported
-def get_candles(pair=PAIR, granularity, since=None):
-    """
-    Returns last candles
-    Note:  the last entry in the OHLC array is for the current, not-yet-committed frame and will always be present,
-           regardless of the value of since.
-    """
-    raise NotImplementedError
-    if since is None:
-        api_command = API_LINK + f'OHLC?pair={pair}&interval={granularity}'
-    else:
-        api_command = API_LINK + f'OHLC?pair={pair}&interval={granularity}&since={since}'
-    return make_request(api_command)
 
 def get_ticker(pair=PAIR):
     """
