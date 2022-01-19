@@ -33,6 +33,7 @@ DEBUG = False
 API_LINK = 'https://api-testnet.bybit.com/v2/public/'
 PAIR = 'BTCUSD'
 LEVEL = 'L2'
+LIMIT = 500
 INTERVAL = '1'
 SINCE = '1581231260'
 
@@ -43,11 +44,11 @@ def get_order_book(pair=PAIR, level=LEVEL, debug=DEBUG):
     api_command = API_LINK + f'orderBook/{level}?symbol={pair}'
     return make_request(api_command, debug)
 
-def get_trades(pair=PAIR, debug=DEBUG):
+def get_trades(pair=PAIR, limit=LIMIT, debug=DEBUG):
     """
-    Returns last 500 trades by default
+    Returns last limit trades (500) by default
     """
-    api_command = API_LINK + f'trading-records?symbol={pair}'
+    api_command = API_LINK + f'trading-records?symbol={pair}&limit={limit}'
     return make_request(api_command, debug)
 
 # Not supported
