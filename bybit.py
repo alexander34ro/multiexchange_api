@@ -18,6 +18,10 @@ General
 Error handling
 - Always check the ret_code is 0
 - Otherwise, return the error (ret_msg)
+
+Other
+! Dual-Price Mechanism:
+https://help.bybit.com/hc/en-us/articles/360039261074-What-is-Dual-Price-mechanism-
 """
 
 import os
@@ -60,29 +64,22 @@ def get_trades(pair=PAIR, limit=LIMIT, debug=DEBUG):
 #     api_command = API_LINK + f'Spreads?pair={pair}&since={since}'
 #     return make_request(api_command)
 
-# Not supported
-# def get_candles(pair=PAIR, granularity, since=None):
-#     """
-#     Returns last candles
-#     Note:  the last entry in the OHLC array is for the current, not-yet-committed frame and will always be present,
-#            regardless of the value of since.
-#     """
-#     raise NotImplementedError
-#     if since is None:
-#         api_command = API_LINK + f'OHLC?pair={pair}&interval={granularity}'
-#     else:
-#         api_command = API_LINK + f'OHLC?pair={pair}&interval={granularity}&since={since}'
-#     return make_request(api_command)
 
-# TODO: everything else
-
-def get_ticker(pair=PAIR, interval=INTERVAL, since=SINCE, debug=DEBUG):
+def get_candles(pair=PAIR, interval=INTERVAL, since=SINCE, debug=DEBUG):
     """
-    Returns ticker info.
-    Note:Today's prices start at midnight UTC
+    Returns last candles
+    Defaults to 200 candles
     """
     api_command = API_LINK + \
         f'kline/list?symbol={pair}&interval={interval}&from={since}'
+    return make_request(api_command, debug)
+
+def get_ticker(pair=PAIR, interval=INTERVAL, since=SINCE, debug=DEBUG):
+    """
+    Returns ticker info (last candle)
+    """
+    api_command = API_LINK + \
+        f'kline/list?symbol={pair}&interval={interval}&from={since}&limit=1'
     return make_request(api_command, debug)
 
 
