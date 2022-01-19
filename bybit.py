@@ -29,25 +29,26 @@ import argparse
 import threading
 from loguru import logger
 
+DEBUG = False
 API_LINK = 'https://api-testnet.bybit.com/v2/public/'
 PAIR = 'BTCUSD'
 LEVEL = 'L2'
 INTERVAL = '1'
 SINCE = '1581231260'
 
-def get_order_book(pair=PAIR, level=LEVEL):
+def get_order_book(pair=PAIR, level=LEVEL, debug=DEBUG):
     """
     Returns L2 order book
     """
     api_command = API_LINK + f'orderBook/{level}?symbol={pair}'
-    return make_request(api_command)
+    return make_request(api_command, debug)
 
-def get_trades(pair=PAIR):
+def get_trades(pair=PAIR, debug=DEBUG):
     """
     Returns last 500 trades by default
     """
     api_command = API_LINK + f'trading-records?symbol={pair}'
-    return make_request(api_command)
+    return make_request(api_command, debug)
 
 # Not supported
 # def get_spreads(pair=PAIR, since):
@@ -74,14 +75,14 @@ def get_trades(pair=PAIR):
 
 # TODO: everything else
 
-def get_ticker(pair=PAIR, interval=INTERVAL, since=SINCE):
+def get_ticker(pair=PAIR, interval=INTERVAL, since=SINCE, debug=DEBUG):
     """
     Returns ticker info.
     Note:Today's prices start at midnight UTC
     """
     api_command = API_LINK + \
         f'kline/list?symbol={pair}&interval={interval}&from={since}'
-    return make_request(api_command)
+    return make_request(api_command, debug)
 
 
 BASE_SAVE_DIR = '../../datasets/'
@@ -205,12 +206,12 @@ def main(args):
         t.start()
 
 
-def make_request(url):
+def make_request(url, debug=DEBUG):
     """
     Makes a request and handles the response
     Returns result or error message
     """
-    logger.info(f'GET {url}')
+    if debug: logger.info(f'GET {url}')
     resp = requests.get(url).json()
     if resp['ret_code'] == 0: return resp['result']
     return resp['ret_msg']
