@@ -11,7 +11,50 @@ import argparse
 import threading
 from loguru import logger
 
+from easydict import EasyDict as edict
+
+
+# TODO: Eliminate duplicate function and mapping
+def map_currency(currency, currency_map):
+    """
+    Returns the currency symbol as specified by the exchange API docs.
+    NOTE: Some exchanges (kraken) use different naming conventions. (e.g. BTC->XBT)
+    """
+    if currency not in currency_map.keys():
+        return currency
+    return currency_map[currency]
+
+
+def map_pair(pair, currency_map):
+    """
+    Returns the pair symbol as specified by the exchange API docs.
+    """
+    logger.debug(f'pair: {pair}')
+    return map_currency(pair.split('-')[0], currency_map) + \
+           map_currency(pair.split('-')[1], currency_map)
+
+KRAKEN_BASE_ARGS = edict({'time': None,
+                          'pair': None,
+                          'savedir': None,
+                          'order_book': 0,
+                          'depth': 10,
+                          'candles': 0,
+                          'granularity': 60,
+                          'spreads': 0,
+                          'trades': 0,
+                          'ticker': 0})
+
 API_LINK = 'https://api.kraken.com/0/public/'
+KRAKEN_NAME_CONVENTION = {
+    'BTC': 'XBT'
+    }
+
+INVERSE_KRAKEN_NAME_CONVENTION = {
+    'XBT': 'BTC'
+    }
+
+BASE_SAVE_DIR = '../../datasets/'
+
 
 def get_order_book(pair, depth):
     """Returns order book by depth"""
@@ -21,6 +64,7 @@ def get_order_book(pair, depth):
         return resp
     return resp['error']
 
+
 def get_trades(pair, since):
     """Returns last 1000 trades by default"""
     api_command = API_LINK + f'Trades?pair={pair}&since={since}'
@@ -29,6 +73,7 @@ def get_trades(pair, since):
         return resp
     return resp['error']
 
+
 def get_spreads(pair, since):
     """Returns last recent spreads"""
     api_command = API_LINK + f'Spreads?pair={pair}&since={since}'
@@ -36,6 +81,7 @@ def get_spreads(pair, since):
     if not resp['error']:  # empty
         return resp
     return resp['error']
+
 
 def get_candles(pair, granularity, since=None):
     """
@@ -52,6 +98,7 @@ def get_candles(pair, granularity, since=None):
         return resp
     return resp['error']
 
+
 def get_ticker(pair):
     """
     Returns ticker info.
@@ -64,7 +111,25 @@ def get_ticker(pair):
     return resp['error']
 
 
-BASE_SAVE_DIR = '../../datasets/'
+def store_info(save_dir, api_pair_symbol, pair_print_name, collection_time, info_type, **kwargs):
+    """
+    Logs API request response by
+        info_type: FN_MAPPING.keys()
+        timestamp: Unix time of request
+    """
+    logger.info(f"Collecting {info_type} data for {pair_print_name} to {save_dir}")
+    with open(join(save_dir, info_type) + '.txt', 'w') as file:
+        start = time.time()
+        while time.time() - start < collection_time:
+            file.write(json.dumps({
+                'ts': time.time(),
+                'response': next(iter(FN_MAPPING[info_type](pair=api_pair_symbol, **kwargs)['result'].values()))
+            }))
+            file.write('\n')
+
+    logger.info(f'Finished collecting {info_type} data for {pair_print_name}')
+
+
 FN_MAPPING = {
     'order_book': get_order_book,
     'candles': get_candles,
@@ -72,36 +137,11 @@ FN_MAPPING = {
     'ticker': get_ticker,
     'spread': get_spreads,
 }
-PAIR_MAPPING = {
-    'XBTUSD': 'BTC-USD'
-}
-# Kraken is stupid so it uses ANOTHER convention for the pair in the response json
-KRAKEN_PAIR_MAPPING = {
-    'XBTUSD': 'XXBTZUSD'
-}
-
-
-def store_info(save_dir, pair, collection_time, info_type, **kwargs):
-    """
-    Logs API request response by
-        info_type: FN_MAPPING.keys()
-        timestamp: Unix time of request
-    """
-    logger.info(f'Collecting {info_type} data for {PAIR_MAPPING[pair]}')
-    with open(join(save_dir, info_type) + '.txt', 'w') as file:
-        start = time.time()
-        while time.time() - start < collection_time:
-            file.write(json.dumps({
-                'ts': time.time(),
-                'response': FN_MAPPING[info_type](pair=pair, **kwargs)['result'][KRAKEN_PAIR_MAPPING[pair]]
-                }))
-            file.write('\n')
-
-    logger.info(f'Finished collecting {info_type} data for {PAIR_MAPPING[pair]}')
-
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--savedir', type=str, default=BASE_SAVE_DIR,
+                        help='Base save directory')
     parser.add_argument('--time', type=int, default=5,
                         help='Time in seconds for which to run the data collector')
     # Pair
@@ -111,8 +151,8 @@ def parse_arguments():
     parser.add_argument('--order_book', type=int, default=0,
                         help='Get a list of open orders for a product. The amount of detail shown can be customized'
                              'with the level parameter.')
-    parser.add_argument('--depth', type=int, default=3,
-                        help='Level of order book desired. Accepted values: 1, 2, 3')
+    parser.add_argument('--depth', type=int, default=10,
+                        help='Depth of order book ')
     # Candles
     parser.add_argument('--candles', type=int, default=0,
                         help='Historic rates for a product. Rates are returned in grouped buckets. '
@@ -140,6 +180,7 @@ def parse_arguments():
 def main(args):
     collection_time = args.time
     pair = args.pair
+    api_pair_symbol = map_pair(pair, KRAKEN_NAME_CONVENTION)
     # Ob
     use_ob = args.order_book
     if use_ob: depth = args.depth
@@ -153,45 +194,43 @@ def main(args):
     # Ticker
     use_ticker = args.ticker
 
-    save_dir = join(*[BASE_SAVE_DIR, PAIR_MAPPING[pair], 'kraken'])
+    save_dir = join(*[args.savedir, pair, 'kraken'])
     os.makedirs(save_dir, exist_ok=True)
     threads = []
     if use_ticker:
         t = threading.Thread(target=store_info,
-                             args=(save_dir, pair, collection_time, 'ticker'),
+                             args=(save_dir, api_pair_symbol, pair, collection_time, 'ticker'),
                              )
         threads.append(t)
 
     if use_ob:
         t = threading.Thread(target=store_info,
-                             args=(save_dir, pair, collection_time, 'order_book'),
+                             args=(save_dir, api_pair_symbol, pair, collection_time, 'order_book'),
                              kwargs={'depth': depth}
                              )
         threads.append(t)
 
     if use_spreads:
         t = threading.Thread(target=store_info,
-                             args=(save_dir, pair, collection_time, 'spread'),
+                             args=(save_dir, api_pair_symbol, pair, collection_time, 'spread'),
                              )
         threads.append(t)
 
     if use_trades:
         t = threading.Thread(target=store_info,
-                             args=(save_dir, pair, collection_time, 'trades'),
+                             args=(save_dir, api_pair_symbol, pair, collection_time, 'trades'),
                              )
         threads.append(t)
 
     if use_candles:
         t = threading.Thread(target=store_info,
-                             args=(save_dir, pair, collection_time, 'candles'),
+                             args=(save_dir, api_pair_symbol, pair, collection_time, 'candles'),
                              kwargs={'granularity': candles_granularity}
                              )
         threads.append(t)
 
     for t in threads:
         t.start()
-
-
 
 
 if __name__ == "__main__":

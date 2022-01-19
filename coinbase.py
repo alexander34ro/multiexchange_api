@@ -11,6 +11,20 @@ import argparse
 import threading
 from loguru import logger
 
+from easydict import EasyDict as edict
+
+CBPRO_BASE_ARGS = edict({'time': None,
+                          'pair': None,
+                         'savedir': None,
+                         'order_book': 0,
+                          'ob_depth': 10,
+                          'ob_level': 2,
+                          'candles': 0,
+                          'granularity': 60,
+                          'stats': 0,
+                          'trades': 0,
+                          'ticker': 0})
+
 BASE_SAVE_DIR = '../../datasets/'
 PUBLIC_CLIENT = cbpro.PublicClient()
 
@@ -56,6 +70,8 @@ def store_info(save_dir, pair, collection_time, info_type, **kwargs):
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--savedir', type=str, default=BASE_SAVE_DIR,
+                        help='Base save directory')
     parser.add_argument('--time', type=int, default=5,
                         help='Time in seconds for which to run the data collector')
     # Pair
@@ -111,7 +127,7 @@ def main(args):
     # Ticker
     use_ticker = args.ticker
 
-    save_dir = join(*[BASE_SAVE_DIR, pair, 'cb_pro'])
+    save_dir = join(*[args.savedir, pair, 'cb_pro'])
     os.makedirs(save_dir, exist_ok=True)
     threads = []
     if use_ticker:
