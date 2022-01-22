@@ -40,6 +40,7 @@ LIMIT = 500
 INTERVAL = '1'
 SINCE = '1581231260'
 
+
 def get_order_book(pair=PAIR, debug=DEBUG):
     """
     Returns level 2 order book
@@ -47,6 +48,7 @@ def get_order_book(pair=PAIR, debug=DEBUG):
     """
     api_command = API_LINK + f'orderBook/L2?symbol={pair}'
     return make_request(api_command, debug)
+
 
 def get_trades(pair=PAIR, limit=LIMIT, debug=DEBUG):
     """
@@ -74,6 +76,7 @@ def get_candles(pair=PAIR, interval=INTERVAL, since=SINCE, debug=DEBUG):
         f'kline/list?symbol={pair}&interval={interval}&from={since}'
     return make_request(api_command, debug)
 
+
 def get_ticker(pair=PAIR, interval=INTERVAL, since=SINCE, debug=DEBUG):
     """
     Returns ticker info (last candle)
@@ -86,7 +89,7 @@ def get_ticker(pair=PAIR, interval=INTERVAL, since=SINCE, debug=DEBUG):
 BASE_SAVE_DIR = '../../datasets/'
 FN_MAPPING = {
     'order_book': get_order_book,
-    # 'candles': get_candles,
+    'candles': get_candles,
     'trades': get_trades,
     'ticker': get_ticker,
     # 'spread': get_spreads,
@@ -134,9 +137,9 @@ def parse_arguments():
                              '{60, 300, 900, 3600, 21600, 86400}. Otherwise, your request will be rejected. '
                              'These values correspond to timeslices representing one minute, five minutes, '
                              'fifteen minutes, one hour, six hours, and one day, respectively.')
-    # 24H, 30D stats
-    parser.add_argument('--spreads', type=int, default=0,
-                        help='Collect 24h, 30D stats')
+    # # 24H, 30D stats
+    # parser.add_argument('--spreads', type=int, default=0,
+    #                     help='Collect 24h, 30D stats')
     # Trades
     parser.add_argument('--trades', type=int, default=0,
                         help='Gets a list the latest trades for a product.')
@@ -150,16 +153,16 @@ def parse_arguments():
 
 
 def main(args):
-    collection_time = args.time
-    pair = args.pair
     # Ob
     use_ob = args.order_book
-    if use_ob: depth = args.depth
+    if use_ob:
+        depth = args.depth
     # Candles
     use_candles = args.candles
-    if use_candles: candles_granularity = args.granularity
-    # Stats
-    use_spreads = args.spreads
+    if use_candles:
+        candles_granularity = args.granularity
+    # # Stats
+    # use_spreads = args.spreads
     # Trades
     use_trades = args.trades
     # Ticker
@@ -167,41 +170,36 @@ def main(args):
 
     save_dir = join(*[BASE_SAVE_DIR, pair, 'kraken'])
     os.makedirs(save_dir, exist_ok=True)
+    pair = args.pair
+    collection_time = args.time
+    default_args = (save_dir, pair, collection_time)
+
     threads = []
     if use_ticker:
-        t = threading.Thread(target=store_info,
-                             args=(save_dir, pair, collection_time, 'ticker'),
-                             )
-        threads.append(t)
-
+        make_thread(threads, default_args, 'ticker', {})
     if use_ob:
-        t = threading.Thread(target=store_info,
-                             args=(save_dir, pair, collection_time, 'order_book'),
-                             kwargs={'depth': depth}
-                             )
-        threads.append(t)
-
-    if use_spreads:
-        t = threading.Thread(target=store_info,
-                             args=(save_dir, pair, collection_time, 'spread'),
-                             )
-        threads.append(t)
-
+        make_thread(threads, default_args, 'order_book', {'depth': depth})
+    # if use_spreads:
+    #     t = threading.Thread(
+    #         target=store_info,
+    #         args=(save_dir, pair, collection_time, 'spread'),
+    #     )
+    #     threads.append(t)
     if use_trades:
-        t = threading.Thread(target=store_info,
-                             args=(save_dir, pair, collection_time, 'trades'),
-                             )
-        threads.append(t)
-
+        make_thread(threads, default_args, 'trades', {})
     if use_candles:
-        t = threading.Thread(target=store_info,
-                             args=(save_dir, pair, collection_time, 'candles'),
-                             kwargs={'granularity': candles_granularity}
-                             )
-        threads.append(t)
+        make_thread(threads, default_args, 'candles', {
+                    'granularity': candles_granularity})
 
     for t in threads:
         t.start()
+
+
+if __name__ == "__main__":
+    args = parse_arguments()
+    main(args)
+
+### Helpers ###
 
 
 def make_request(url, debug=DEBUG):
@@ -209,12 +207,22 @@ def make_request(url, debug=DEBUG):
     Makes a request and handles the response
     Returns result or error message
     """
-    if debug: logger.info(f'GET {url}')
+    if debug:
+        logger.info(f'GET {url}')
     resp = requests.get(url).json()
-    if resp['ret_code'] == 0: return resp['result']
+    if resp['ret_code'] == 0:
+        return resp['result']
     return resp['ret_msg']
 
 
-if __name__ == "__main__":
-    args = parse_arguments()
-    main(args)
+def make_thread(threads, args, function, kwargs):
+    """
+    Executes function in a thread
+    Returns the thread object
+    """
+    t = threading.Thread(
+        target=store_info,
+        args=(*args, function),
+        kwargs=kwargs
+    )
+    threads.append(t)
