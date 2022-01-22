@@ -1,7 +1,29 @@
 """
 This module collects all necessary data for one Pair
 from the Bybit exchange
+
+General
+- Docs are found at:
+  https://bybit-exchange.github.io/docs/inverse/?console#t-marketdata
+- Requests go to:
+  https://api-testnet.bybit.com/v2/public
+- All Bybit responses include:
+  "ret_code": 0, - error code 0 means success
+  "ret_msg": "OK", - error message
+  "ext_code": "",
+  "ext_info": "",
+  "result": [], - actual response
+  "time_now": "1567109419.049271"
+
+Error handling
+- Always check the ret_code is 0
+- Otherwise, return the error (ret_msg)
+
+Other
+! Dual-Price Mechanism:
+https://help.bybit.com/hc/en-us/articles/360039261074-What-is-Dual-Price-mechanism-
 """
+
 import os
 from os.path import join
 import json
@@ -10,70 +32,64 @@ import time
 import argparse
 import threading
 from loguru import logger
-from pybit import HTTP
 
+DEBUG = False
 API_LINK = 'https://api-testnet.bybit.com/v2/public/'
+PAIR = 'BTCUSD'
+LIMIT = 500
+INTERVAL = '1'
+SINCE = '1581231260'
 
-def get_order_book(pair):
-    """Returns L2 order book"""
-    # TODO: might want to add depth level as parameter
+def get_order_book(pair=PAIR, debug=DEBUG):
+    """
+    Returns level 2 order book
+    Each side has a depth of 25
+    """
     api_command = API_LINK + f'orderBook/L2?symbol={pair}'
-    resp = requests.get(api_command).json()
-    if not resp['error']: return resp # empty
-    return resp['error']
+    return make_request(api_command, debug)
 
-# TODO: everything else
+def get_trades(pair=PAIR, limit=LIMIT, debug=DEBUG):
+    """
+    Returns last limit trades (500 by default)
+    """
+    api_command = API_LINK + f'trading-records?symbol={pair}&limit={limit}'
+    return make_request(api_command, debug)
 
-def get_trades(pair, since):
-    """Returns last 1000 trades by default"""
-    api_command = API_LINK + f'Trades?pair={pair}&since={since}'
-    resp = requests.get(api_command).json()
-    if not resp['error']:  # empty
-        return resp
-    return resp['error']
+# Not supported
+# def get_spreads(pair=PAIR, since):
+#     """
+#     Returns last recent spreads
+#     """
+#     raise NotImplementedError
+#     api_command = API_LINK + f'Spreads?pair={pair}&since={since}'
+#     return make_request(api_command)
 
-def get_spreads(pair, since):
-    """Returns last recent spreads"""
-    api_command = API_LINK + f'Spreads?pair={pair}&since={since}'
-    resp = requests.get(api_command).json()
-    if not resp['error']:  # empty
-        return resp
-    return resp['error']
 
-def get_candles(pair, granularity, since=None):
+def get_candles(pair=PAIR, interval=INTERVAL, since=SINCE, debug=DEBUG):
     """
     Returns last candles
-    Note:  the last entry in the OHLC array is for the current, not-yet-committed frame and will always be present,
-           regardless of the value of since.
+    Defaults to 200 candles
     """
-    if since is None:
-        api_command = API_LINK + f'OHLC?pair={pair}&interval={granularity}'
-    else:
-        api_command = API_LINK + f'OHLC?pair={pair}&interval={granularity}&since={since}'
-    resp = requests.get(api_command).json()
-    if not resp['error']:  # empty
-        return resp
-    return resp['error']
+    api_command = API_LINK + \
+        f'kline/list?symbol={pair}&interval={interval}&from={since}'
+    return make_request(api_command, debug)
 
-def get_ticker(pair):
+def get_ticker(pair=PAIR, interval=INTERVAL, since=SINCE, debug=DEBUG):
     """
-    Returns ticker info.
-    Note:Today's prices start at midnight UTC
+    Returns ticker info (last candle)
     """
-    api_command = API_LINK + f'Ticker?pair={pair}'
-    resp = requests.get(api_command).json()
-    if not resp['error']:  # empty
-        return resp
-    return resp['error']
+    api_command = API_LINK + \
+        f'kline/list?symbol={pair}&interval={interval}&from={since}&limit=1'
+    return make_request(api_command, debug)
 
 
 BASE_SAVE_DIR = '../../datasets/'
 FN_MAPPING = {
     'order_book': get_order_book,
-    'candles': get_candles,
+    # 'candles': get_candles,
     'trades': get_trades,
     'ticker': get_ticker,
-    'spread': get_spreads,
+    # 'spread': get_spreads,
 }
 
 
@@ -188,6 +204,15 @@ def main(args):
         t.start()
 
 
+def make_request(url, debug=DEBUG):
+    """
+    Makes a request and handles the response
+    Returns result or error message
+    """
+    if debug: logger.info(f'GET {url}')
+    resp = requests.get(url).json()
+    if resp['ret_code'] == 0: return resp['result']
+    return resp['ret_msg']
 
 
 if __name__ == "__main__":
