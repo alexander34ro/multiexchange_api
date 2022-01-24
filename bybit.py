@@ -33,15 +33,31 @@ import argparse
 import threading
 from loguru import logger
 
+from easydict import EasyDict as edict
+
+
+BASE_SAVE_DIR = '../../datasets/'
+
+BYBIT_BASE_ARGS = edict({'time': None,
+                          'pair': None,
+                         'savedir': None,
+                         'order_book': 0,
+                          'depth': 10,
+                          'candles': 0,
+                          'granularity': 60,
+                          'trades': 0,
+                          'ticker': 0})
+
 DEBUG = False
 API_LINK = 'https://api-testnet.bybit.com/v2/public/'
 PAIR = 'BTCUSD'
 LIMIT = 500
+DEPTH = 10
 INTERVAL = '1'
 SINCE = '1581231260'
 
 
-def get_order_book(pair=PAIR, debug=DEBUG):
+def get_order_book(pair=PAIR, depth=DEPTH, debug=DEBUG):
     """
     Returns level 2 order book
     Each side has a depth of 25
@@ -108,7 +124,7 @@ def store_info(save_dir, pair, collection_time, info_type, **kwargs):
         while time.time() - start < collection_time:
             file.write(json.dumps({
                 'ts': time.time(),
-                'response': FN_MAPPING[info_type](product_id=pair, **kwargs)
+                'response': FN_MAPPING[info_type](pair=pair, **kwargs)
             }))
             file.write('\n')
 
@@ -117,6 +133,8 @@ def store_info(save_dir, pair, collection_time, info_type, **kwargs):
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--savedir', type=str, default=BASE_SAVE_DIR,
+                        help='Base save directory')
     parser.add_argument('--time', type=int, default=5,
                         help='Time in seconds for which to run the data collector')
     # Pair
@@ -126,8 +144,8 @@ def parse_arguments():
     parser.add_argument('--order_book', type=int, default=0,
                         help='Get a list of open orders for a product. The amount of detail shown can be customized'
                              'with the level parameter.')
-    parser.add_argument('--depth', type=int, default=3,
-                        help='Level of order book desired. Accepted values: 1, 2, 3')
+    parser.add_argument('--depth', type=int, default=10,
+                        help='Depth of order book desired')
     # Candles
     parser.add_argument('--candles', type=int, default=0,
                         help='Historic rates for a product. Rates are returned in grouped buckets. '
@@ -153,6 +171,8 @@ def parse_arguments():
 
 
 def main(args):
+    pair = args.pair
+    collection_time = args.time
     # Ob
     use_ob = args.order_book
     if use_ob:
@@ -168,10 +188,8 @@ def main(args):
     # Ticker
     use_ticker = args.ticker
 
-    save_dir = join(*[BASE_SAVE_DIR, pair, 'kraken'])
+    save_dir = join(*[args.savedir, pair, 'bybit'])
     os.makedirs(save_dir, exist_ok=True)
-    pair = args.pair
-    collection_time = args.time
     default_args = (save_dir, pair, collection_time)
 
     threads = []
