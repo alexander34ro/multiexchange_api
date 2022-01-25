@@ -25,11 +25,12 @@ def map_currency(currency, currency_map):
     return currency_map[currency]
 
 
-def map_pair(pair, currency_map):
+def map_pair(pair, currency_map, debug=False):
     """
     Returns the pair symbol as specified by the exchange API docs.
     """
-    logger.debug(f'pair: {pair}')
+    if debug:
+        logger.debug(f'pair: {pair}')
     return map_currency(pair.split('-')[0], currency_map) + \
            map_currency(pair.split('-')[1], currency_map)
 

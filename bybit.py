@@ -35,6 +35,27 @@ from loguru import logger
 
 from easydict import EasyDict as edict
 
+# TODO: Eliminate duplicate function and mapping
+def map_currency(currency, currency_map):
+    """
+    Returns the currency symbol as specified by the exchange API docs.
+    NOTE: Some exchanges (kraken) use different naming conventions. (e.g. BTC->XBT)
+    """
+    if currency not in currency_map.keys():
+        return currency
+    return currency_map[currency]
+
+def map_pair(pair, currency_map=None, debug=False):
+    """
+    Returns the pair symbol as specified by the exchange API docs.
+    """
+    if debug:
+        logger.debug(f'pair_save_name: {pair}, pair: {"".join(pair.split("-"))}')
+    if currency_map is None:
+        return ''.join(pair.split('-'))
+
+    return map_currency(pair.split('-')[0], currency_map) + \
+           map_currency(pair.split('-')[1], currency_map)
 
 BASE_SAVE_DIR = '../../datasets/'
 
@@ -112,13 +133,13 @@ FN_MAPPING = {
 }
 
 
-def store_info(save_dir, pair, collection_time, info_type, **kwargs):
+def store_info(save_dir, pair, pair_save_name, collection_time, info_type, **kwargs):
     """
     Logs API request response by
         info_type: FN_MAPPING.keys()
         timestamp: Unix time of request
     """
-    logger.info(f'Collecting {info_type} data for {pair}')
+    logger.info(f'Collecting {info_type} data for {pair_save_name}')
     with open(join(save_dir, info_type) + '.txt', 'w') as file:
         start = time.time()
         while time.time() - start < collection_time:
@@ -128,7 +149,7 @@ def store_info(save_dir, pair, collection_time, info_type, **kwargs):
             }))
             file.write('\n')
 
-    logger.info(f'Finished collecting {info_type} data for {pair}')
+    logger.info(f'Finished collecting {info_type} data for {pair_save_name}')
 
 
 def parse_arguments():
@@ -171,7 +192,8 @@ def parse_arguments():
 
 
 def main(args):
-    pair = args.pair
+    pair_save_name = args.pair
+    pair = map_pair(pair_save_name)
     collection_time = args.time
     # Ob
     use_ob = args.order_book
@@ -188,9 +210,9 @@ def main(args):
     # Ticker
     use_ticker = args.ticker
 
-    save_dir = join(*[args.savedir, pair, 'bybit'])
+    save_dir = join(*[args.savedir, pair_save_name, 'bybit'])
     os.makedirs(save_dir, exist_ok=True)
-    default_args = (save_dir, pair, collection_time)
+    default_args = (save_dir, pair, pair_save_name, collection_time)
 
     threads = []
     if use_ticker:
