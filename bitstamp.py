@@ -36,25 +36,21 @@ from loguru import logger
 DEBUG = True
 API_LINK = 'https://www.bitstamp.net/api/v2/'
 PAIR = 'BTCUSD'
-LIMIT = 500
-INTERVAL = '1'
-SINCE = '1581231260'
 
 
 def get_order_book(pair=PAIR, debug=DEBUG):
     """
     Returns level 2 order book
-    Each side has a depth of 25
     """
-    api_command = API_LINK + f'orderBook/L2?symbol={pair}'
+    api_command = API_LINK + f'order_book/{pair}'
     return make_request(api_command, debug)
 
 
-def get_trades(pair=PAIR, limit=LIMIT, debug=DEBUG):
+def get_trades(pair=PAIR, debug=DEBUG):
     """
-    Returns last limit trades (500 by default)
+    Returns last limit trades
     """
-    api_command = API_LINK + f'trading-records?symbol={pair}&limit={limit}'
+    api_command = API_LINK + f'transactions/{pair}'
     return make_request(api_command, debug)
 
 # Not supported
@@ -67,13 +63,11 @@ def get_trades(pair=PAIR, limit=LIMIT, debug=DEBUG):
 #     return make_request(api_command)
 
 
-def get_candles(pair=PAIR, interval=INTERVAL, since=SINCE, debug=DEBUG):
+def get_candles(pair=PAIR, debug=DEBUG):
     """
     Returns last candles
-    Defaults to 200 candles
     """
-    api_command = API_LINK + \
-        f'kline/list?symbol={pair}&interval={interval}&from={since}'
+    api_command = API_LINK + f'ohlc/{pair}'
     return make_request(api_command, debug)
 
 
